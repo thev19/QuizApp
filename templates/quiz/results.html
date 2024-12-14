@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .results-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+    background-color: #6c757d;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Ensures vertical alignment of content */
+}
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .summary-item {
+            flex: 1;
+        }
+        .summary-item p {
+            margin: 5px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .summary-item .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .greeting-message {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .correct-btn { background-color: #28a745; color: white; }
+        .incorrect-btn { background-color: #dc3545; color: white; }
+        .unattempted-btn { background-color: #6c757d; color: white; }
+        .all-btn { background-color: #007bff; color: white; }
+        .questions-list { list-style-type: none; padding: 0; }
+        .question {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .correct { background-color: #d4edda; }
+        .incorrect { background-color: #f8d7da; }
+        .not-attempted { background-color: #e0e0e0; }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const results = JSON.parse(localStorage.getItem('quizResults') || '{}');
+
+            if (!results.detailedResults) {
+                document.body.innerHTML = '<h1>No results found. Please retake the quiz.</h1>';
+                return;
+            }
+            // document.getElementById('greeting').textContent = `Hi ${results.userName}, here are your test score details:`;;
+            document.getElementById('totalQuestions').textContent = results.totalQuestions;
+            document.getElementById('correctAnswers').textContent = results.correctAnswers;
+            document.getElementById('incorrectAnswers').textContent = results.incorrectAnswers;
+            document.getElementById('notAttempted').textContent = results.notAttempted;
+
+            const questionsList = document.getElementById('questionsList');
+
+            function displayQuestions(filter) {
+                questionsList.innerHTML = '';
+                results.detailedResults
+                    .filter(filter)
+                    .forEach(result => {
+                        const li = document.createElement('li');
+                        li.className = `question ${result.isCorrect ? 'correct' : (result.selectedOptionId ? 'incorrect' : 'not-attempted')}`;
+                        li.innerHTML = `
+                            <p><strong>Question:</strong> ${result.question}</p>
+                            <p><strong>Selected Option:</strong> ${result.selectedOptionId || 'None'}</p>
+                            <p><strong>Correct Option:</strong> ${result.correctOptionId}</p>
+                        `;
+                        questionsList.appendChild(li);
+                    });
+            }
+
+            document.getElementById('showCorrect').addEventListener('click', () => {
+                displayQuestions(r => r.isCorrect);
+            });
+
+            document.getElementById('showIncorrect').addEventListener('click', () => {
+                displayQuestions(r => !r.isCorrect && r.selectedOptionId);
+            });
+
+            document.getElementById('showUnattempted').addEventListener('click', () => {
+                displayQuestions(r => !r.selectedOptionId);
+            });
+
+            document.getElementById('showAll').addEventListener('click', () => {
+                displayQuestions(() => true);
+            });
+
+            // Show all questions initially
+            displayQuestions(() => true);
+        });
+    </script>
+</head>
+<body>
+    <div class="results-container">
+        <div class="header">
+            <h1>Quiz Results</h1>
+            <div class="button-container">
+                <form method="get" action="{% url 'welcome' %}">
+                    <button class="home-button" type="submit"><h1>Home</h1></button>
+                </form>
+            </div>
+        </div>
+        <p id="greeting" class="greeting-message">Hi {{user_name}}, here are your test score details:</p>
+        <div class="summary">
+            <div class="summary-item">
+                <p>Total Questions</p>
+                <p class="value" id="totalQuestions">0</p>
+            </div>
+            <div class="summary-item">
+                <p>Correct Answers</p>
+                <p class="value" id="correctAnswers">0</p>
+            </div>
+            <div class="summary-item">
+                <p>Incorrect Answers</p>
+                <p class="value" id="incorrectAnswers">0</p>
+            </div>
+            <div class="summary-item">
+                <p>Not Attempted</p>
+                <p class="value" id="notAttempted">0</p>
+            </div>
+        </div>
+        <div class="button-container">
+            <button id="showCorrect" class="button correct-btn">Show Correct</button>
+            <button id="showIncorrect" class="button incorrect-btn">Show Incorrect</button>
+            <button id="showUnattempted" class="button unattempted-btn">Show Unattempted</button>
+            <button id="showAll" class="button all-btn">Show All</button>
+        </div>
+        <ul id="questionsList" class="questions-list"></ul>
+    </div>
+</body>
+</html>

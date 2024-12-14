@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Application</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            background-color: #f4f4f4;
+        }
+
+        .timer {
+            font-size: 18px;
+            background-color: #ff9800;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: auto;
+        }
+
+        .quiz-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+        }
+
+        .quiz-main {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .question-section {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .question-content {
+            flex-grow: 1;
+        }
+
+        .question-palette {
+            width: 20%;
+            background-color: #f0f0f0;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        .palette-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .question-number {
+            flex: 1 1 calc(25% - 10px);
+            max-width: 100px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .not-attempted {
+            background-color: red;
+            color: white;
+        }
+
+        .attempted {
+            background-color: green;
+            color: white;
+        }
+
+        .marked-review {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .indicators {
+            margin-top: 20px;
+            /* display: flex; */
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 5px;
+        }
+
+        .indicator-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 3px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .option:hover {
+            background-color: #f0f0f0;
+        }
+
+        .submit-test-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: auto;
+        }
+
+        .mark-review-btn {
+            margin: 0 auto;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 250px;
+        }
+
+        .next-btn {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 250px;
+        }
+
+        .prev-btn {
+            background-color: gray;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 250px;
+        }
+
+        .hamburger-menu {
+            display: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .hamburger-content {
+            display: none;
+            flex-direction: column;
+            background-color: #f0f0f0;
+            padding: 15px;
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .hamburger-content.active {
+            display: flex;
+        }
+
+        .hamburger-close {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            align-self: flex-end;
+            cursor: pointer;
+            margin-bottom: 10px;
+            margin-left: auto;
+        }
+
+
+        @media (max-width: 975px) {
+            .quiz-main {
+                flex-direction: column;
+            }
+
+            .question-section {
+                width: 100%;
+            }
+
+            .question-number {
+                flex: 1 1 calc(33.33% - 10px);
+            }
+
+            .hamburger-menu {
+                display: block;
+                /* margin-left: auto; */
+                padding: 10px;
+            }
+            .question-palette {
+                display: none;
+            }
+
+
+        }
+
+        @media (max-width: 480px) {
+            .question-number {
+                flex: 1 1 calc(50% - 10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="quiz-container">
+        <!-- Header with Quiz Name, Timer, and Submit Test Button -->
+        <div class="quiz-header">
+            <div class="quiz-name">Programming Quiz</div>
+            <div class="timer" id="timer">60:00</div>
+            <button class="submit-test-btn" onclick="submitTest()">Submit Test</button>
+            <div class="hamburger-menu" onclick="toggleHamburgerMenu()">☰</div>
+        </div>
+
+        <!-- Main Quiz Area -->
+        <div class="quiz-main">
+            <!-- Left Section: Questions -->
+            <div class="question-section">
+                <div class="question-content" id="questionContent">
+                    <h2 id="questionText">Loading Question...</h2>
+                    <div class="options" id="optionsContainer">
+                        <!-- Options will be dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="question-navigation">
+                    <button class="prev-btn"  onclick="previousQuestion()">Previous</button>
+                    <button class="mark-review-btn" onclick="markForReview()">Mark for Review</button>
+                    <button class="next-btn" onclick="nextQuestion()">Next</button>
+                </div>
+            </div>
+
+            <!-- Right Section: Question Palette -->
+            <div class="question-palette" id="questionPalette">
+                <div class="palette-questions">
+                    <!-- Question number boxes will be dynamically generated -->
+                </div>
+                <div class="indicators">
+                    <div class="indicator">
+                        <div class="indicator-box not-attempted"></div> Unattempted
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-box marked-review"></div> Marked for Review
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-box attempted"></div> Attempted
+                    </div>
+                </div>
+            </div>
+
+            <div id="hamburgerContent" class="hamburger-content">
+                <button class="hamburger-close" onclick="toggleHamburgerMenu()">Close ✖</button>
+                <div class="palette-questions" id="hamburgerPalette"></div>
+                <div class="indicators">
+                    <div class="indicator">
+                        <div class="indicator-box not-attempted"></div>&nbsp;&nbsp;&nbsp;&nbsp; Unattempted
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-box marked-review"></div>&nbsp;&nbsp;&nbsp;&nbsp; Marked for Review
+                    </div>
+                    <div class="indicator">
+                        <div class="indicator-box attempted"></div>&nbsp;&nbsp;&nbsp;&nbsp; Attempted
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let questionStates = [];
+        let timer;
+        let timeRemaining = 900; // 15 minutes
+
+        function toggleHamburgerMenu() {
+            const hamburgerContent = document.getElementById('hamburgerContent');
+            hamburgerContent.classList.toggle('active');
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeRemaining--;
+                let minutes = Math.floor(timeRemaining / 60);
+                let seconds = timeRemaining % 60;
+                document.getElementById('timer').textContent =
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    submitTest();
+                }
+            }, 1000);
+        }
+
+        function fetchQuestions() {
+            axios.get('/quiz/get-all-questions/')
+                .then(response => {
+                    questions = response.data.questions;
+                    questionStates = questions.map((question) => ({
+                        status: 'not-attempted',
+                        selectedOption: null
+                    }));
+                    generateQuestionPalette();
+                    displayCurrentQuestion();
+                    startTimer();
+                });
+        }
+
+        function displayCurrentQuestion() {
+            if (questions.length === 0) return;
+
+            const question = questions[currentQuestionIndex];
+            document.getElementById('questionText').textContent = question.text;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            question.choices.forEach((choice, index) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'option';
+                optionEl.innerHTML = `
+                    <input 
+                        type="radio" 
+                        name="option" 
+                        id="option${index}" 
+                        value="${choice.id}"
+                        ${questionStates[currentQuestionIndex].selectedOption === choice.id ? 'checked' : ''}
+                        onchange="selectOption(${choice.id})"
+                    >
+                    <label for="option${index}">${choice.text}</label>
+                `;
+                optionEl.onclick = () => {
+                    document.getElementById(`option${index}`).click();
+                };
+                optionsContainer.appendChild(optionEl);
+            });
+
+            updateQuestionPaletteStatus();
+        }
+
+        function selectOption(choiceId) {
+            questionStates[currentQuestionIndex].status = 'attempted';
+            questionStates[currentQuestionIndex].selectedOption = choiceId;
+            updateQuestionPaletteStatus();
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayCurrentQuestion();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayCurrentQuestion();
+            }
+        }
+
+        function markForReview() {
+            questionStates[currentQuestionIndex].status = 'marked-review';
+            updateQuestionPaletteStatus();
+            nextQuestion();
+        }
+
+        function generateQuestionPalette() {
+            const paletteQuestionsContainer = document.querySelector('.palette-questions');
+            const hamburgerPaletteContainer = document.getElementById('hamburgerPalette');
+
+            paletteQuestionsContainer.innerHTML = '';
+            hamburgerPaletteContainer.innerHTML = '';
+
+            questions.forEach((_, index) => {
+                const questionNumElMain = document.createElement('div');
+                questionNumElMain.className = 'question-number not-attempted';
+                questionNumElMain.textContent = index + 1;
+                questionNumElMain.onclick = () => {
+                    currentQuestionIndex = index;
+                    displayCurrentQuestion();
+                };
+
+                const questionNumElHamburger = document.createElement('div');
+                questionNumElHamburger.className = 'question-number not-attempted';
+                questionNumElHamburger.textContent = index + 1;
+                questionNumElHamburger.onclick = () => {
+                    currentQuestionIndex = index;
+                    displayCurrentQuestion();
+                    toggleHamburgerMenu(); 
+                };
+
+                paletteQuestionsContainer.appendChild(questionNumElMain);
+                hamburgerPaletteContainer.appendChild(questionNumElHamburger);
+            });
+        }
+
+
+        function updateQuestionPaletteStatus() {
+            const paletteEls = document.querySelectorAll('.question-number');
+            questionStates.forEach((state, index) => {
+                paletteEls[index].className = `question-number ${state.status}`;
+            });
+        }
+
+        function submitTest() {
+    clearInterval(timer);
+
+    const selectedAnswers = questionStates.map((state, index) => ({
+        questionId: questions[index].id,
+        selectedOptionId: state.selectedOption,
+    }));
+
+    axios.post('/quiz/submit-test/', { answers: selectedAnswers })
+        .then(response => {
+            console.log('API Response:', response.data);
+
+            if (response.data.results) {
+                const results = response.data.results;
+
+                results.forEach(result => {
+                    const questionIndex = questions.findIndex(q => q.id === result.questionId);
+                    if (questionIndex !== -1) {
+                        if (result.isCorrect) {
+                            questionStates[questionIndex].status = 'correct';
+                        } else if (result.selectedOptionId) {
+                            questionStates[questionIndex].status = 'incorrect';
+                        } else {
+                            questionStates[questionIndex].status = 'not-attempted';
+                        }
+                    }
+                });
+
+                localStorage.setItem('quizResults', JSON.stringify({
+                    totalQuestions: results.length,
+                    correctAnswers: results.filter(r => r.isCorrect).length,
+                    incorrectAnswers: results.filter(r => !r.isCorrect && r.selectedOptionId).length,
+                    notAttempted: results.filter(r => !r.selectedOptionId).length,
+                    detailedResults: results,
+                }));
+
+                window.location.href = '/quiz/results/';
+            } else {
+                console.error('No results returned from API');
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting test:', error);
+            alert('There was an error submitting your test. Please try again.');
+        });
+}
+
+
+        fetchQuestions();
+    </script>
+</body>
+
+</html>
